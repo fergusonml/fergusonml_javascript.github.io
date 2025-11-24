@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<!--Copyright 2025 Matthew Lee Ferguson-->
+<!--Javascript μLecture Demonstrations by Matthew Lee Ferguson is licensed under a GNU General Public License as published by the Free Software Foundation.
+Based on a work at https://www.boisestate.edu/physics/faculty-and-staff/faculty/ferguson/-->
+<html>
+  <head>
+    <title>Wedge Billiard</title>
+    <script>
+		// MIT License:
+		//
+		// Copyright (c) 2010-2013, Joe Walnes
+		//               2013-2014, Drew Noakes
+		//
+		// Permission is hereby granted, free of charge, to any person obtaining a copy
+		// of this software and associated documentation files (the "Software"), to deal
+		// in the Software without restriction, including without limitation the rights
+		// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+		// copies of the Software, and to permit persons to whom the Software is
+		// furnished to do so, subject to the following conditions:
+		//
+		// The above copyright notice and this permission notice shall be included in
+		// all copies or substantial portions of the Software.
+		//
+		// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+		// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+		// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+		// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+		// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+		// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+		// THE SOFTWARE.
+
+		/**
+		 * Smoothie Charts - http://smoothiecharts.org/
+		 * (c) 2010-2013, Joe Walnes
+		 *     2013-2014, Drew Noakes
+		 *
+		 * v1.0: Main charting library, by Joe Walnes
+		 * v1.1: Auto scaling of axis, by Neil Dunn
+		 * v1.2: fps (frames per second) option, by Mathias Petterson
+		 * v1.3: Fix for divide by zero, by Paul Nikitochkin
+		 * v1.4: Set minimum, top-scale padding, remove timeseries, add optional timer to reset bounds, by Kelley Reynolds
+		 * v1.5: Set default frames per second to 50... smoother.
+		 *       .start(), .stop() methods for conserving CPU, by Dmitry Vyal
+		 *       options.interpolation = 'bezier' or 'line', by Dmitry Vyal
+		 *       options.maxValue to fix scale, by Dmitry Vyal
+		 * v1.6: minValue/maxValue will always get converted to floats, by Przemek Matylla
+		 * v1.7: options.grid.fillStyle may be a transparent color, by Dmitry A. Shashkin
+		 *       Smooth rescaling, by Kostas Michalopoulos
+		 * v1.8: Set max length to customize number of live points in the dataset with options.maxDataSetLength, by Krishna Narni
+		 * v1.9: Display timestamps along the bottom, by Nick and Stev-io
+		 *       (https://groups.google.com/forum/?fromgroups#!topic/smoothie-charts/-Ywse8FCpKI%5B1-25%5D)
+		 *       Refactored by Krishna Narni, to support timestamp formatting function
+		 * v1.10: Switch to requestAnimationFrame, removed the now obsoleted options.fps, by Gergely Imreh
+		 * v1.11: options.grid.sharpLines option added, by @drewnoakes
+		 *        Addressed warning seen in Firefox when seriesOption.fillStyle undefined, by @drewnoakes
+		 * v1.12: Support for horizontalLines added, by @drewnoakes
+		 *        Support for yRangeFunction callback added, by @drewnoakes
+		 * v1.13: Fixed typo (#32), by @alnikitich
+		 * v1.14: Timer cleared when last TimeSeries removed (#23), by @davidgaleano
+		 *        Fixed diagonal line on chart at start/end of data stream, by @drewnoakes
+		 * v1.15: Support for npm package (#18), by @dominictarr
+		 *        Fixed broken removeTimeSeries function (#24) by @davidgaleano
+		 *        Minor performance and tidying, by @drewnoakes
+		 * v1.16: Bug fix introduced in v1.14 relating to timer creation/clearance (#23), by @drewnoakes
+		 *        TimeSeries.append now deals with out-of-order timestamps, and can merge duplicates, by @zacwitte (#12)
+		 *        Documentation and some local variable renaming for clarity, by @drewnoakes
+		 * v1.17: Allow control over font size (#10), by @drewnoakes
+		 *        Timestamp text won't overlap, by @drewnoakes
+		 * v1.18: Allow control of max/min label precision, by @drewnoakes
+		 *        Added 'borderVisible' chart option, by @drewnoakes
+		 *        Allow drawing series with fill but no stroke (line), by @drewnoakes
+		 * v1.19: Avoid unnecessary repaints, and fixed flicker in old browsers having multiple charts in document (#40), by @asbai
+		 * v1.20: Add SmoothieChart.getTimeSeriesOptions and SmoothieChart.bringToFront functions, by @drewnoakes
+		 * v1.21: Add 'step' interpolation mode, by @drewnoakes
+		 * v1.22: Add support for different pixel ratios. Also add optional y limit formatters, by @copacetic
+		 * v1.23: Fix bug introduced in v1.22 (#44), by @drewnoakes
+		 * v1.24: Fix bug introduced in v1.23, re-adding parseFloat to y-axis formatter defaults, by @siggy_sf
+		 * v1.25: Fix bug seen when adding a data point to TimeSeries which is older than the current data, by @Nking92
+		 *        Draw time labels on top of series, by @comolosabia
+		 *        Add TimeSeries.clear function, by @drewnoakes
+		 * v1.26: Add support for resizing on high device pixel ratio screens, by @copacetic
+		 * v1.27: Fix bug introduced in v1.26 for non whole number devicePixelRatio values, by @zmbush
+		 * v1.28: Add 'minValueScale' option, by @megawac
+		 */ -->
+
+		;(function(exports) {
+
+		  var Util = {
+			extend: function() {
+			  arguments[0] = arguments[0] || {};
+			  for (var i = 1; i < arguments.length; i++)
+			  {
+				for (var key in arguments[i])
+				{
+				  if (arguments[i].hasOwnProperty(key))
+				  {
+					if (typeof(arguments[i][key]) === 'object') {
+					  if (arguments[i][key] instanceof Array) {
+						arguments[0][key] = arguments[i][key];
+					  } else {
+						arguments[0][key] = Util.extend(arguments[0][key], arguments[i][key]);
+					  }
+					} else {
+					  arguments[0][key] = arguments[i][key];
+					}
+				  }
+				}
+			  }
+			  return arguments[0];
+			}
+		  };
+
+		  /**
+		   * Initialises a new <code>TimeSeries</code> with optional data options.
+		   *
+		   * Options are of the form (defaults shown):
+		   *
+		   * <pre>
+		   * {
+		   *   resetBounds: true,        // enables/disables automatic scaling of the y-axis
+		   *   resetBoundsInterval: 3000 // the period between scaling calculations, in millis
+		   * }
+		   * </pre>
+		   *
+		   * Presentation options for TimeSeries are specified as an argument to <code>SmoothieChart.addTimeSeries</code>.
+		   *
+		   * @constructor
+		   */
+		  function TimeSeries(options) {
+			this.options = Util.extend({}, TimeSeries.defaultOptions, options);
+			this.clear();
+		  }
+
+		  TimeSeries.defaultOptions = {
+			resetBoundsInterval: 3000,
+			resetBounds: true
+		  };
+
+		  /**
+		   * Clears all data and state from this TimeSeries object.
+		   */
+		  TimeSeries.prototype.clear = function() {
+			this.data = [];
+			this.maxValue = Number.NaN; // The maximum value ever seen in this TimeSeries.
+			this.minValue = Number.NaN; // The minimum value ever seen in this TimeSeries.
+		  };
+
+		  /**
+		   * Recalculate the min/max values for this <code>TimeSeries</code> object.
+		   *
+		   * This causes the graph to scale itself in the y-axis.
+		   */
+		  TimeSeries.prototype.resetBounds = function() {
+			if (this.data.length) {
+			  // Walk through all data points, finding the min/max value
+			  this.maxValue = this.data[0][1];
+			  this.minValue = this.data[0][1];
+			  for (var i = 1; i < this.data.length; i++) {
+				var value = this.data[i][1];
+				if (value > this.maxValue) {
+				  this.maxValue = value;
+				}
+				if (value < this.minValue) {
+				  this.minValue = value;
+				}
+			  }
+			} else {
+			  // No data exists, so set min/max to NaN
+			  this.maxValue = Number.NaN;
+			  this.minValue = Number.NaN;
+			}
+		  };
+
+		  /**
+		   * Adds a new data point to the <code>TimeSeries</code>, preserving chronological order.
+		   *
+		   * @param timestamp the position, in time, of this data point
+		   * @param value the value of this data point
+		   * @param sumRepeatedTimeStampValues if <code>timestamp</code> has an exact match in the series, this flag controls
+		   * whether it is replaced, or the values summed (defaults to false.)
+		   */
+		  TimeSeries.prototype.append = function(timestamp, value, sumRepeatedTimeStampValues) {
+			// Rewind until we hit an older timestamp
+			var i = this.data.length - 1;
+			while (i >= 0 && this.data[i][0] > timestamp) {
+			  i--;
+			}
+
+			if (i === -1) {
+			  // This new item is the oldest data
+			  this.data.splice(0, 0, [timestamp, value]);
+			} else if (this.data.length > 0 && this.data[i][0] === timestamp) {
+			  // Update existing values in the array
+			  if (sumRepeatedTimeStampValues) {
+				// Sum this value into the existing 'bucket'
+				this.data[i][1] += value;
+				value = this.data[i][1];
+			  } else {
+				// Replace the previous value
+				this.data[i][1] = value;
+			  }
+			} else if (i < this.data.length - 1) {
+			  // Splice into the correct position to keep timestamps in order
+			  this.data.splice(i + 1, 0, [timestamp, value]);
+			} else {
+			  // Add to the end of the array
+			  this.data.push([timestamp, value]);
+			}
+
+			this.maxValue = isNaN(this.maxValue) ? value : Math.max(this.maxValue, value);
+			this.minValue = isNaN(this.minValue) ? value : Math.min(this.minValue, value);
+		  };
+
+		  TimeSeries.prototype.dropOldData = function(oldestValidTime, maxDataSetLength) {
+			// We must always keep one expired data point as we need this to draw the
+			// line that comes into the chart from the left, but any points prior to that can be removed.
+			var removeCount = 0;
+			while (this.data.length - removeCount >= maxDataSetLength && this.data[removeCount + 1][0] < oldestValidTime) {
+			  removeCount++;
+			}
+			if (removeCount !== 0) {
+			  this.data.splice(0, removeCount);
+			}
+		  };
+
+		  /**
+		   * Initialises a new <code>SmoothieChart</code>.
+		   *
+		   * Options are optional, and should be of the form below. Just specify the values you
+		   * need and the rest will be given sensible defaults as shown:
+		   *
+		   * <pre>
+		   * {
+		   *   minValue: undefined,                      // specify to clamp the lower y-axis to a given value
+		   *   maxValue: undefined,                      // specify to clamp the upper y-axis to a given value
+		   *   maxValueScale: 1,                         // allows proportional padding to be added above the chart. for 10% padding, specify 1.1.
+		   *   minValueScale: 1,                         // allows proportional padding to be added below the chart. for 10% padding, specify 1.1.
+		   *   yRangeFunction: undefined,                // function({min: , max: }) { return {min: , max: }; }
+		   *   scaleSmoothing: 0.125,                    // controls the rate at which y-value zoom animation occurs
+		   *   millisPerPixel: 20,                       // sets the speed at which the chart pans by
+		   *   enableDpiScaling: true,                   // support rendering at different DPI depending on the device
+		   *   yMinFormatter: function(min, precision) { // callback function that formats the min y value label
+		   *     return parseFloat(min).toFixed(precision);
+		   *   },
+		   *   yMaxFormatter: function(max, precision) { // callback function that formats the max y value label
+		   *     return parseFloat(max).toFixed(precision);
+		   *   },
+		   *   maxDataSetLength: 2,
+		   *   interpolation: 'bezier'                   // one of 'bezier', 'linear', or 'step'
+		   *   timestampFormatter: null,                 // optional function to format time stamps for bottom of chart
+		   *                                             // you may use SmoothieChart.timeFormatter, or your own: function(date) { return ''; }
+		   *   scrollBackwards: false,                   // reverse the scroll direction of the chart
+		   *   horizontalLines: [],                      // [ { value: 0, color: '#ffffff', lineWidth: 1 } ]
+		   *   grid:
+		   *   {
+		   *     fillStyle: '#000000',                   // the background colour of the chart
+		   *     lineWidth: 1,                           // the pixel width of grid lines
+		   *     strokeStyle: '#777777',                 // colour of grid lines
+		   *     millisPerLine: 1000,                    // distance between vertical grid lines
+		   *     sharpLines: false,                      // controls whether grid lines are 1px sharp, or softened
+		   *     verticalSections: 2,                    // number of vertical sections marked out by horizontal grid lines
+		   *     borderVisible: true                     // whether the grid lines trace the border of the chart or not
+		   *   },
+		   *   labels
+		   *   {
+		   *     disabled: false,                        // enables/disables labels showing the min/max values
+		   *     fillStyle: '#ffffff',                   // colour for text of labels,
+		   *     fontSize: 15,
+		   *     fontFamily: 'sans-serif',
+		   *     precision: 2
+		   *   }
+		   * }
+		   * </pre>
+		   *
+		   * @constructor
+		   */
+		  function SmoothieChart(options) {
+			this.options = Util.extend({}, SmoothieChart.defaultChartOptions, options);
+			this.seriesSet = [];
+			this.currentValueRange = 1;
+			this.currentVisMinValue = 0;
+			this.lastRenderTimeMillis = 0;
+		  }
+
+		  SmoothieChart.defaultChartOptions = {
+			millisPerPixel: 20,
+			enableDpiScaling: false,
+			yMinFormatter: function(min, precision) {
+			  return parseFloat(min).toFixed(precision);
+			},
+			yMaxFormatter: function(max, precision) {
+			  return parseFloat(max).toFixed(precision);
+			},
+			maxValueScale: 1,
+			minValueScale: 1,
+			interpolation: 'bezier',
+			scaleSmoothing: 0.125,
+			maxDataSetLength: 2,
+			scrollBackwards: false,
+			grid: {
+			  fillStyle: '#000000',
+			  strokeStyle: '#777777',
+			  lineWidth: 1,
+			  sharpLines: false,
+			  millisPerLine: 1000,
+			  verticalSections: 2,
+			  borderVisible: true
+			},
+			labels: {
+			  fillStyle: '#ffffff',
+			  disabled: false,
+			  fontSize: 10,
+			  fontFamily: 'monospace',
+			  precision: 2
+			},
+			horizontalLines: []
+		  };
+
+		  // Based on http://inspirit.github.com/jsfeat/js/compatibility.js
+		  SmoothieChart.AnimateCompatibility = (function() {
+			var requestAnimationFrame = function(callback, element) {
+				  var requestAnimationFrame =
+					window.requestAnimationFrame        ||
+					window.webkitRequestAnimationFrame  ||
+					window.mozRequestAnimationFrame     ||
+					window.oRequestAnimationFrame       ||
+					window.msRequestAnimationFrame      ||
+					function(callback) {
+					  return window.setTimeout(function() {
+						callback(new Date().getTime());
+					  }, 16);
+					};
+				  return requestAnimationFrame.call(window, callback, element);
+				},
+				cancelAnimationFrame = function(id) {
+				  var cancelAnimationFrame =
+					window.cancelAnimationFrame ||
+					function(id) {
+					  clearTimeout(id);
+					};
+				  return cancelAnimationFrame.call(window, id);
+				};
+
+			return {
+			  requestAnimationFrame: requestAnimationFrame,
+			  cancelAnimationFrame: cancelAnimationFrame
+			};
+		  })();
+
+		  SmoothieChart.defaultSeriesPresentationOptions = {
+			lineWidth: 1,
+			strokeStyle: '#ffffff'
+		  };
+
+		  /**
+		   * Adds a <code>TimeSeries</code> to this chart, with optional presentation options.
+		   *
+		   * Presentation options should be of the form (defaults shown):
+		   *
+		   * <pre>
+		   * {
+		   *   lineWidth: 1,
+		   *   strokeStyle: '#ffffff',
+		   *   fillStyle: undefined
+		   * }
+		   * </pre>
+		   */
+		  SmoothieChart.prototype.addTimeSeries = function(timeSeries, options) {
+			this.seriesSet.push({timeSeries: timeSeries, options: Util.extend({}, SmoothieChart.defaultSeriesPresentationOptions, options)});
+			if (timeSeries.options.resetBounds && timeSeries.options.resetBoundsInterval > 0) {
+			  timeSeries.resetBoundsTimerId = setInterval(
+				function() {
+				  timeSeries.resetBounds();
+				},
+				timeSeries.options.resetBoundsInterval
+			  );
+			}
+		  };
+
+		  /**
+		   * Removes the specified <code>TimeSeries</code> from the chart.
+		   */
+		  SmoothieChart.prototype.removeTimeSeries = function(timeSeries) {
+			// Find the correct timeseries to remove, and remove it
+			var numSeries = this.seriesSet.length;
+			for (var i = 0; i < numSeries; i++) {
+			  if (this.seriesSet[i].timeSeries === timeSeries) {
+				this.seriesSet.splice(i, 1);
+				break;
+			  }
+			}
+			// If a timer was operating for that timeseries, remove it
+			if (timeSeries.resetBoundsTimerId) {
+			  // Stop resetting the bounds, if we were
+			  clearInterval(timeSeries.resetBoundsTimerId);
+			}
+		  };
+
+		  /**
+		   * Gets render options for the specified <code>TimeSeries</code>.
+		   *
+		   * As you may use a single <code>TimeSeries</code> in multiple charts with different formatting in each usage,
+		   * these settings are stored in the chart.
+		   */
+		  SmoothieChart.prototype.getTimeSeriesOptions = function(timeSeries) {
+			// Find the correct timeseries to remove, and remove it
+			var numSeries = this.seriesSet.length;
+			for (var i = 0; i < numSeries; i++) {
+			  if (this.seriesSet[i].timeSeries === timeSeries) {
+				return this.seriesSet[i].options;
+			  }
+			}
+		  };
+
+		  /**
+		   * Brings the specified <code>TimeSeries</code> to the top of the chart. It will be rendered last.
+		   */
+		  SmoothieChart.prototype.bringToFront = function(timeSeries) {
+			// Find the correct timeseries to remove, and remove it
+			var numSeries = this.seriesSet.length;
+			for (var i = 0; i < numSeries; i++) {
+			  if (this.seriesSet[i].timeSeries === timeSeries) {
+				var set = this.seriesSet.splice(i, 1);
+				this.seriesSet.push(set[0]);
+				break;
+			  }
+			}
+		  };
+
+		  /**
+		   * Instructs the <code>SmoothieChart</code> to start rendering to the provided canvas, with specified delay.
+		   *
+		   * @param canvas the target canvas element
+		   * @param delayMillis an amount of time to wait before a data point is shown. This can prevent the end of the series
+		   * from appearing on screen, with new values flashing into view, at the expense of some latency.
+		   */
+		  SmoothieChart.prototype.streamTo = function(canvas, delayMillis) {
+			this.canvas = canvas;
+			this.delay = delayMillis;
+			this.start();
+		  };
+
+		  /**
+		   * Make sure the canvas has the optimal resolution for the device's pixel ratio.
+		   */
+		  SmoothieChart.prototype.resize = function() {
+			// TODO this function doesn't handle the value of enableDpiScaling changing during execution
+			if (!this.options.enableDpiScaling || !window || window.devicePixelRatio === 1)
+			  return;
+
+			var dpr = window.devicePixelRatio;
+			var width = parseInt(this.canvas.getAttribute('width'));
+			var height = parseInt(this.canvas.getAttribute('height'));
+
+			if (!this.originalWidth || (Math.floor(this.originalWidth * dpr) !== width)) {
+			  this.originalWidth = width;
+			  this.canvas.setAttribute('width', (Math.floor(width * dpr)).toString());
+			  this.canvas.style.width = width + 'px';
+			  this.canvas.getContext('2d').scale(dpr, dpr);
+			}
+
+			if (!this.originalHeight || (Math.floor(this.originalHeight * dpr) !== height)) {
+			  this.originalHeight = height;
+			  this.canvas.setAttribute('height', (Math.floor(height * dpr)).toString());
+			  this.canvas.style.height = height + 'px';
+			  this.canvas.getContext('2d').scale(dpr, dpr);
+			}
+		  };
+
+		  /**
+		   * Starts the animation of this chart.
+		   */
+		  SmoothieChart.prototype.start = function() {
+			if (this.frame) {
+			  // We're already running, so just return
+			  return;
+			}
+
+			// Renders a frame, and queues the next frame for later rendering
+			var animate = function() {
+			  this.frame = SmoothieChart.AnimateCompatibility.requestAnimationFrame(function() {
+				this.render();
+				animate();
+			  }.bind(this));
+			}.bind(this);
+
+			animate();
+		  };
+
+		  /**
+		   * Stops the animation of this chart.
+		   */
+		  SmoothieChart.prototype.stop = function() {
+			if (this.frame) {
+			  SmoothieChart.AnimateCompatibility.cancelAnimationFrame(this.frame);
+			  delete this.frame;
+			}
+		  };
+
+		  SmoothieChart.prototype.updateValueRange = function() {
+			// Calculate the current scale of the chart, from all time series.
+			var chartOptions = this.options,
+				chartMaxValue = Number.NaN,
+				chartMinValue = Number.NaN;
+
+			for (var d = 0; d < this.seriesSet.length; d++) {
+			  // TODO(ndunn): We could calculate / track these values as they stream in.
+			  var timeSeries = this.seriesSet[d].timeSeries;
+			  if (!isNaN(timeSeries.maxValue)) {
+				chartMaxValue = !isNaN(chartMaxValue) ? Math.max(chartMaxValue, timeSeries.maxValue) : timeSeries.maxValue;
+			  }
+
+			  if (!isNaN(timeSeries.minValue)) {
+				chartMinValue = !isNaN(chartMinValue) ? Math.min(chartMinValue, timeSeries.minValue) : timeSeries.minValue;
+			  }
+			}
+
+			// Scale the chartMaxValue to add padding at the top if required
+			if (chartOptions.maxValue != null) {
+			  chartMaxValue = chartOptions.maxValue;
+			} else {
+			  chartMaxValue *= chartOptions.maxValueScale;
+			}
+
+			// Set the minimum if we've specified one
+			if (chartOptions.minValue != null) {
+			  chartMinValue = chartOptions.minValue;
+			} else {
+			  chartMinValue -= Math.abs(chartMinValue * chartOptions.minValueScale - chartMinValue);
+			}
+
+			// If a custom range function is set, call it
+			if (this.options.yRangeFunction) {
+			  var range = this.options.yRangeFunction({min: chartMinValue, max: chartMaxValue});
+			  chartMinValue = range.min;
+			  chartMaxValue = range.max;
+			}
+
+			if (!isNaN(chartMaxValue) && !isNaN(chartMinValue)) {
+			  var targetValueRange = chartMaxValue - chartMinValue;
+			  var valueRangeDiff = (targetValueRange - this.currentValueRange);
+			  var minValueDiff = (chartMinValue - this.currentVisMinValue);
+			  this.isAnimatingScale = Math.abs(valueRangeDiff) > 0.1 || Math.abs(minValueDiff) > 0.1;
+			  this.currentValueRange += chartOptions.scaleSmoothing * valueRangeDiff;
+			  this.currentVisMinValue += chartOptions.scaleSmoothing * minValueDiff;
+			}
+
+			this.valueRange = { min: chartMinValue, max: chartMaxValue };
+		  };
+
+		  SmoothieChart.prototype.render = function(canvas, time) {
+			var nowMillis = new Date().getTime();
+
+			if (!this.isAnimatingScale) {
+			  // We're not animating. We can use the last render time and the scroll speed to work out whether
+			  // we actually need to paint anything yet. If not, we can return immediately.
+
+			  // Render at least every 1/6th of a second. The canvas may be resized, which there is
+			  // no reliable way to detect.
+			  var maxIdleMillis = Math.min(1000/6, this.options.millisPerPixel);
+
+			  if (nowMillis - this.lastRenderTimeMillis < maxIdleMillis) {
+				return;
+			  }
+			}
+
+			this.resize();
+
+			this.lastRenderTimeMillis = nowMillis;
+
+			canvas = canvas || this.canvas;
+			time = time || nowMillis - (this.delay || 0);
+
+			// Round time down to pixel granularity, so motion appears smoother.
+			time -= time % this.options.millisPerPixel;
+
+			var context = canvas.getContext('2d'),
+				chartOptions = this.options,
+				dimensions = { top: 0, left: 0, width: canvas.clientWidth, height: canvas.clientHeight },
+				// Calculate the threshold time for the oldest data points.
+				oldestValidTime = time - (dimensions.width * chartOptions.millisPerPixel),
+				valueToYPixel = function(value) {
+				  var offset = value - this.currentVisMinValue;
+				  return this.currentValueRange === 0
+					? dimensions.height
+					: dimensions.height - (Math.round((offset / this.currentValueRange) * dimensions.height));
+				}.bind(this),
+				timeToXPixel = function(t) {
+				  if(chartOptions.scrollBackwards) {
+					return Math.round((time - t) / chartOptions.millisPerPixel);
+				  }
+				  return Math.round(dimensions.width - ((time - t) / chartOptions.millisPerPixel));
+				};
+
+			this.updateValueRange();
+
+			context.font = chartOptions.labels.fontSize + 'px ' + chartOptions.labels.fontFamily;
+
+			// Save the state of the canvas context, any transformations applied in this method
+			// will get removed from the stack at the end of this method when .restore() is called.
+			context.save();
+
+			// Move the origin.
+			context.translate(dimensions.left, dimensions.top);
+
+			// Create a clipped rectangle - anything we draw will be constrained to this rectangle.
+			// This prevents the occasional pixels from curves near the edges overrunning and creating
+			// screen cheese (that phrase should need no explanation).
+			context.beginPath();
+			context.rect(0, 0, dimensions.width, dimensions.height);
+			context.clip();
+
+			// Clear the working area.
+			context.save();
+			context.fillStyle = chartOptions.grid.fillStyle;
+			context.clearRect(0, 0, dimensions.width, dimensions.height);
+			context.fillRect(0, 0, dimensions.width, dimensions.height);
+			context.restore();
+
+			// Grid lines...
+			context.save();
+			context.lineWidth = chartOptions.grid.lineWidth;
+			context.strokeStyle = chartOptions.grid.strokeStyle;
+			// Vertical (time) dividers.
+			if (chartOptions.grid.millisPerLine > 0) {
+			  context.beginPath();
+			  for (var t = time - (time % chartOptions.grid.millisPerLine);
+				   t >= oldestValidTime;
+				   t -= chartOptions.grid.millisPerLine) {
+				var gx = timeToXPixel(t);
+				if (chartOptions.grid.sharpLines) {
+				  gx -= 0.5;
+				}
+				context.moveTo(gx, 0);
+				context.lineTo(gx, dimensions.height);
+			  }
+			  context.stroke();
+			  context.closePath();
+			}
+
+			// Horizontal (value) dividers.
+			for (var v = 1; v < chartOptions.grid.verticalSections; v++) {
+			  var gy = Math.round(v * dimensions.height / chartOptions.grid.verticalSections);
+			  if (chartOptions.grid.sharpLines) {
+				gy -= 0.5;
+			  }
+			  context.beginPath();
+			  context.moveTo(0, gy);
+			  context.lineTo(dimensions.width, gy);
+			  context.stroke();
+			  context.closePath();
+			}
+			// Bounding rectangle.
+			if (chartOptions.grid.borderVisible) {
+			  context.beginPath();
+			  context.strokeRect(0, 0, dimensions.width, dimensions.height);
+			  context.closePath();
+			}
+			context.restore();
+
+			// Draw any horizontal lines...
+			if (chartOptions.horizontalLines && chartOptions.horizontalLines.length) {
+			  for (var hl = 0; hl < chartOptions.horizontalLines.length; hl++) {
+				var line = chartOptions.horizontalLines[hl],
+					hly = Math.round(valueToYPixel(line.value)) - 0.5;
+				context.strokeStyle = line.color || '#ffffff';
+				context.lineWidth = line.lineWidth || 1;
+				context.beginPath();
+				context.moveTo(0, hly);
+				context.lineTo(dimensions.width, hly);
+				context.stroke();
+				context.closePath();
+			  }
+			}
+
+			// For each data set...
+			for (var d = 0; d < this.seriesSet.length; d++) {
+			  context.save();
+			  var timeSeries = this.seriesSet[d].timeSeries,
+				  dataSet = timeSeries.data,
+				  seriesOptions = this.seriesSet[d].options;
+
+			  // Delete old data that's moved off the left of the chart.
+			  timeSeries.dropOldData(oldestValidTime, chartOptions.maxDataSetLength);
+
+			  // Set style for this dataSet.
+			  context.lineWidth = seriesOptions.lineWidth;
+			  context.strokeStyle = seriesOptions.strokeStyle;
+			  // Draw the line...
+			  context.beginPath();
+			  // Retain lastX, lastY for calculating the control points of bezier curves.
+			  var firstX = 0, lastX = 0, lastY = 0;
+			  for (var i = 0; i < dataSet.length && dataSet.length !== 1; i++) {
+				var x = timeToXPixel(dataSet[i][0]),
+					y = valueToYPixel(dataSet[i][1]);
+
+				if (i === 0) {
+				  firstX = x;
+				  context.moveTo(x, y);
+				} else {
+				  switch (chartOptions.interpolation) {
+					case "linear":
+					case "line": {
+					  context.lineTo(x,y);
+					  break;
+					}
+					case "bezier":
+					default: {
+					  // Great explanation of Bezier curves: http://en.wikipedia.org/wiki/Bezier_curve#Quadratic_curves
+					  //
+					  // Assuming A was the last point in the line plotted and B is the new point,
+					  // we draw a curve with control points P and Q as below.
+					  //
+					  // A---P
+					  //     |
+					  //     |
+					  //     |
+					  //     Q---B
+					  //
+					  // Importantly, A and P are at the same y coordinate, as are B and Q. This is
+					  // so adjacent curves appear to flow as one.
+					  //
+					  context.bezierCurveTo( // startPoint (A) is implicit from last iteration of loop
+						Math.round((lastX + x) / 2), lastY, // controlPoint1 (P)
+						Math.round((lastX + x)) / 2, y, // controlPoint2 (Q)
+						x, y); // endPoint (B)
+					  break;
+					}
+					case "step": {
+					  context.lineTo(x,lastY);
+					  context.lineTo(x,y);
+					  break;
+					}
+				  }
+				}
+
+				lastX = x; lastY = y;
+			  }
+
+			  if (dataSet.length > 1) {
+				if (seriesOptions.fillStyle) {
+				  // Close up the fill region.
+				  context.lineTo(dimensions.width + seriesOptions.lineWidth + 1, lastY);
+				  context.lineTo(dimensions.width + seriesOptions.lineWidth + 1, dimensions.height + seriesOptions.lineWidth + 1);
+				  context.lineTo(firstX, dimensions.height + seriesOptions.lineWidth);
+				  context.fillStyle = seriesOptions.fillStyle;
+				  context.fill();
+				}
+
+				if (seriesOptions.strokeStyle && seriesOptions.strokeStyle !== 'none') {
+				  context.stroke();
+				}
+				context.closePath();
+			  }
+			  context.restore();
+			}
+
+			// Draw the axis values on the chart.
+			if (!chartOptions.labels.disabled && !isNaN(this.valueRange.min) && !isNaN(this.valueRange.max)) {
+			  var maxValueString = chartOptions.yMaxFormatter(this.valueRange.max, chartOptions.labels.precision),
+				  minValueString = chartOptions.yMinFormatter(this.valueRange.min, chartOptions.labels.precision),
+				  labelPos = chartOptions.scrollBackwards ? 0 : dimensions.width - context.measureText(maxValueString).width - 2;
+			  context.fillStyle = chartOptions.labels.fillStyle;
+			  context.fillText(maxValueString, labelPos, chartOptions.labels.fontSize);
+			  context.fillText(minValueString, labelPos, dimensions.height - 2);
+			}
+
+			// Display timestamps along x-axis at the bottom of the chart.
+			if (chartOptions.timestampFormatter && chartOptions.grid.millisPerLine > 0) {
+			  var textUntilX = chartOptions.scrollBackwards
+				? context.measureText(minValueString).width
+				: dimensions.width - context.measureText(minValueString).width + 4;
+			  for (var t = time - (time % chartOptions.grid.millisPerLine);
+				   t >= oldestValidTime;
+				   t -= chartOptions.grid.millisPerLine) {
+				var gx = timeToXPixel(t);
+				// Only draw the timestamp if it won't overlap with the previously drawn one.
+				if ((!chartOptions.scrollBackwards && gx < textUntilX) || (chartOptions.scrollBackwards && gx > textUntilX))  {
+				  // Formats the timestamp based on user specified formatting function
+				  // SmoothieChart.timeFormatter function above is one such formatting option
+				  var tx = new Date(t),
+					ts = chartOptions.timestampFormatter(tx),
+					tsWidth = context.measureText(ts).width;
+
+				  textUntilX = chartOptions.scrollBackwards
+					? gx + tsWidth + 2
+					: gx - tsWidth - 2;
+
+				  context.fillStyle = chartOptions.labels.fillStyle;
+				  if(chartOptions.scrollBackwards) {
+					context.fillText(ts, gx, dimensions.height - 2);
+				  } else {
+					context.fillText(ts, gx - tsWidth, dimensions.height - 2);
+				  }
+				}
+			  }
+			}
+
+			context.restore(); // See .save() above.
+		  };
+
+		  // Sample timestamp formatting function
+		  SmoothieChart.timeFormatter = function(date) {
+			function pad2(number) { return (number < 10 ? '0' : '') + number }
+			return pad2(date.getHours()) + ':' + pad2(date.getMinutes()) + ':' + pad2(date.getSeconds());
+		  };
+
+		  exports.TimeSeries = TimeSeries;
+		  exports.SmoothieChart = SmoothieChart;
+
+		})(typeof exports === 'undefined' ? this : exports);
+	</script>
+    <script>
+		function Ball (radius, color) {
+		  this.radius = radius;
+		  this.color = color;
+		  this.x = 0;
+		  this.y = 0;
+		  this.vx = 0;
+		  this.vy = 0;
+		}
+
+		Ball.prototype.draw = function (context) {
+			context.fillStyle = this.color;
+			context.beginPath();
+			context.arc(this.x, this.y, this.radius, 0, 2*Math.PI, true);
+			context.closePath();
+			context.fill();  
+		};
+	</script>
+    <script>
+		function Graph(context,xmin,xmax,ymin,ymax,x0,y0,xwidth,ywidth) {
+		// VARIABLE DECLARATIONS	
+			// canvas context on which to draw graph instance 
+			var ctx = context;
+			// location of origin (in pixels) in parent document
+			var x_orig;
+			var y_orig;
+			// overall width and height of graph in pixels
+			var x_width;
+			var y_width;
+			// min and max of x and y relative to origin (in pixels)
+			var x_min_rel;
+			var x_max_rel;
+			var y_min_rel;
+			var y_max_rel;
+			// obvious
+			var x_tick_major;
+			var x_tick_minor;
+			var y_tick_major;
+			var y_tick_minor;
+			// scaling used in displaying values on the axes 
+			var x_displ_scal;
+			var y_displ_scal;
+			// width and height of textbox used for displaying values on the axes
+			// this should not have to be tampered with (I hope)
+			var tw=15;
+			var th=20;
+			// declarations for quantities to be used later
+			var x_min;
+			var x_max;
+			var y_min;
+			var y_max;
+			var xx;
+			var yy;
+			var x_displ;
+			var y_displ;
+			var txpos;
+			var typos;
+			
+		// PARAMETER ASSIGNMENTS	
+			// assign parameter values based on specified arguments			
+			x_orig=x0;
+			y_orig=y0;
+			x_width=xwidth;
+			y_width=ywidth;
+			//			
+			x_displ_scal=(xmax-xmin)/xwidth;
+			y_displ_scal=(ymax-ymin)/ywidth;		
+			//		
+			x_min_rel=xmin/x_displ_scal;
+			x_max_rel=xmax/x_displ_scal;
+			y_min_rel=ymin/y_displ_scal;
+			y_max_rel=ymax/y_displ_scal;
+			// convert to absolute coordinates				
+			x_min=x_min_rel + x_orig;
+			x_max=x_max_rel + x_orig;
+			y_min=y_orig - y_min_rel;
+			y_max=y_orig - y_max_rel;
+			txpos=x_orig - tw;
+			typos=y_orig;	
+			
+		// METHODS	
+			// DRAW GRID: draw major, minor lines and display values
+			this.drawgrid = function(xmajor,xminor,ymajor,yminor){		
+				x_tick_major=xmajor/x_displ_scal;
+				x_tick_minor=xminor/x_displ_scal;
+				y_tick_major=ymajor/y_displ_scal;
+				y_tick_minor=yminor/y_displ_scal;
+				// draw major grid lines
+				ctx.strokeStyle = '#999999';
+				ctx.lineWidth = 1;		
+				ctx.beginPath() ;			
+				yy=y_max;
+				do {
+					ctx.moveTo(x_min,yy);
+					ctx.lineTo(x_max,yy);
+					yy+= y_tick_major;
+				} while (yy <= y_min);
+				xx=x_min;
+				do {
+					ctx.moveTo(xx,y_min);
+					ctx.lineTo(xx,y_max);
+					xx+= x_tick_major;
+				} while (xx <= x_max);
+				ctx.stroke();						
+				// draw minor grid lines			
+				ctx.strokeStyle = '#cccccc';
+				ctx.lineWidth = 1;	
+				ctx.beginPath() ;			
+				yy=y_max;
+				do {
+					ctx.moveTo(x_min,yy);
+					ctx.lineTo(x_max,yy);
+					yy+= y_tick_minor;
+				} while (yy <= y_min);
+				xx=x_min;
+				do {
+					ctx.moveTo(xx,y_min);
+					ctx.lineTo(xx,y_max);
+					xx+= x_tick_minor;
+				} while (xx <= x_max);
+				ctx.stroke();	
+				//display values
+				ctx.font = "10pt Arial";
+				ctx.fillStyle = '#dddddd';
+				ctx.textAlign = "right";
+				ctx.textBaseline = "top";		
+				yy=y_max;	
+				do {
+					y_displ=(y_orig - yy) * y_displ_scal;
+								y_displ=Math.round(y_displ*1000)/1000.;//added mlf 20150320
+					ctx.fillText(y_displ,txpos + 5,yy - th / 2);
+					yy+= y_tick_major;
+				} while (yy <= y_min);	
+				ctx.textAlign = "left";
+				ctx.textBaseline = "top";				
+				xx=x_min;
+				do {
+					x_displ=(xx - x_orig) * x_displ_scal;
+								x_displ=Math.round(Math.pow(2,x_displ));
+					ctx.fillText(x_displ,xx - tw + 10,typos + 5);			
+					xx+= x_tick_major;
+				} while (xx <= x_max);				
+			};		
+				
+			// DRAW AXES: draw axes and labels		
+			this.drawaxes = function (xlabel,ylabel){		
+				if(typeof(xlabel)==='undefined') xlabel = 'x';
+				if(typeof(ylabel)==='undefined') ylabel = 'y';		
+				ctx.strokeStyle = '#888888';
+				ctx.lineWidth = 2;
+				ctx.beginPath() ;
+				ctx.moveTo(x_min,y_orig);
+				ctx.lineTo(x_max,y_orig);
+				ctx.moveTo(x_orig,y_min);
+				ctx.lineTo(x_orig,y_max);
+				ctx.stroke();
+				//axis labels
+				ctx.font = "12pt Arial";
+				ctx.fillStyle = '#888888';
+				ctx.textAlign = "left";
+				ctx.textBaseline = "top";
+				ctx.fillText(xlabel,x_max + 0.75 * tw,typos - th / 2);
+				ctx.fillText(ylabel,txpos + tw / 2 +5,y_max - 1.5 * th);
+			};		
+				
+			// PLOT DATA: plot data
+			this.plot = function (xArr, yArr, pColor, pDots, pLine){
+				// the last three arguments have default values
+				if(typeof(pColor)==='undefined') pColor = '#0000ff';
+				if(typeof(pDots)==='undefined') pDots = true;
+				if(typeof(pLine)==='undefined') pLine = true;
+				var xpos=x_orig+xArr[0]/x_displ_scal;
+				var ypos=y_orig-yArr[0]/y_displ_scal;
+				ctx.strokeStyle = pColor;
+				ctx.lineWidth = 1;
+				ctx.beginPath() ;			
+				ctx.moveTo(xpos,ypos);
+				ctx.arc(xpos,ypos,1,0,2*Math.PI,true);
+				for (var i=1; i<xArr.length; i++){
+					xpos=x_orig+xArr[i]/x_displ_scal;
+					ypos=y_orig-yArr[i]/y_displ_scal;
+					if (pLine){
+						ctx.lineTo(xpos,ypos);				
+					}else{
+						ctx.moveTo(xpos,ypos);
+					}
+					if (pDots){
+						ctx.arc(xpos,ypos,1,0,2*Math.PI,true);
+					}
+				}
+				ctx.stroke();			
+			};	
+
+		}
+	</script>
+  </head>
+  <body bgColor="#fff">
+    <div id="maindiv" style="width:768px; margin-left:auto; margin-right:auto;">
+		
+		<div id="appDiv1" style="background-color:#d0d0d0; border:5px solid #d0d0d0;">
+			
+			<div id="controlpanel" style="float:right; width:230px; margin-left:10px; text-align:center;">
+				<div style="margin-top:5px; text-align:center;">
+					number of green molecules = <input id="Nvalue" type="text" size="3" style="text-align:center" onchange="changeN(this.value)" oninput="changeN(this.value)"/><br>
+				</div>
+				<div style="margin-bottom:8px">
+					<input id="Nslider" type="range" min="0" max="40" value="10" oninput="changeN(this.value);printValue('Nslider','Nvalue');" onchange="changeN(this.value);printValue('Nslider','Nvalue');">
+				</div>
+				<div style="margin-top:5px; text-align:center;">
+					number of molecules = <input id="numBallvalue" type="text" size="3" style="text-align:center" onchange="changeNumball(this.value)" oninput="changeNumball(this.value)"/><br>
+					(up to 10,000, use textbox above 100)
+				</div>
+				<div style="margin-bottom:8px">
+					<input id="numBallsslider" type="range" min="0" max="100" value="40" oninput="changeNumball(this.value);printValue('numBallsslider','numBallvalue');" onchange="changeNumball(this.value);printValue('numBallsslider','numBallvalue');">
+				</div>
+				<div style="margin-top:5px; text-align:center;">
+					diffusion coefficient = 
+					<span id="Dvalue"></span>
+				</div>
+				<div>
+					<input id="Dslider" type="range" min="0" max="50" value="10" oninput="changeD(this.value)" onchange="changeD(this.value)">
+				</div><br>
+				<div style="margin-top:5px; text-align:center;">
+					Molecular Brightness<br>(photons/molecule/second)<br>
+					green&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;red<br>
+					&nbsp;&nbsp;<input id="greenBrightness" type="text" size="1" value="1" style="text-align:center" onchange="changegreenBrightness(this.value)" oninput="changegreenBrightness(this.value)"/>
+					:&nbsp;<input id="redBrightness" type="text" size="1" value="1" style="text-align:center" onchange="changeredBrightness(this.value)"oninput="changeredBrightness(this.value)"/>
+				</div><br>
+				<div style="margin-top:5px; text-align:center;">
+					Stoichimoetry<br>
+					green&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;red<br>
+					&nbsp;&nbsp;<input id="greenStoichiometry" type="text" size="1" value="1" style="text-align:center" onchange="changegreenStoichiometry(this.value)" oninput="changegreenStoichiometry(this.value)"/>
+					:&nbsp;<input id="redStoichiometry" type="text" size="1" value="1" style="text-align:center" onchange="changeredStoichiometry(this.value)" oninput="changeredStoichiometry(this.value)"/>
+				</div><br>
+				<div style="margin-top:8px;text-align:center;">
+					Background Color:
+					<select id="bgSelect" onchange="changeBg()">
+						<option value="White" selected>White</option>
+						<option value="Black">Black</option>
+						<option value="Red">Red</option>
+						<option value="Blue">Blue</option>
+						<option value="Green">Green</option>
+					</select>
+				</div> <br>
+				<div>
+				<input type="button" onclick="reinit()" value="reset"/>
+				</div>
+			</div>
+			<div id="canvasdiv" style="width:512px; position:relative;">
+			
+				<canvas id="canvas" width="512px" height="256px" style=
+				"background-color:#fff;">Canvas not supported; please update your browser.</canvas>
+				
+				<canvas id="chart1" width="512px" height="128px" style="background-color:#fff;"></canvas>
+				
+				<canvas id="chart2" width="512px" height="128px" style="background-color:#fff;"></canvas>
+			</div>
+					
+		</div>
+		
+		<script>
+		function reinit(){
+			F2=[];
+			F1=[];
+			tau=[];g1=[];g2=[];g12=[];	
+			t1=0;
+			
+		}	
+		function changegreenStoichiometry(newgreenStoichiometry){
+			document.getElementById("greenStoichiometry").innerHTML=newgreenStoichiometry;
+			stoichiometry_green=newgreenStoichiometry;
+		}
+		function changeredStoichiometry(newredStoichiometry){
+			document.getElementById("redStoichiometry").innerHTML=newredStoichiometry;
+			stoichiometry_red=newredStoichiometry;
+		}
+		function changegreenBrightness(newlambda_green) {
+			document.getElementById("greenBrightness").innerHTML=newlambda_green;
+			lambda_green=newlambda_green;
+		}
+		function changeredBrightness(newlambda_red) {
+			document.getElementById("redBrightness").innerHTML=newlambda_red;
+			lambda_red=newlambda_red;
+		}
+		function printValue(sliderID,textbox) {
+			var p=document.getElementById(textbox);
+			var q=document.getElementById(sliderID);
+			p.value=q.value;
+		}
+		function changeBg() {
+			document.getElementById('canvas').style.backgroundColor=document.getElementById('bgSelect').value;
+			document.getElementById('chart2').style.backgroundColor=document.getElementById('bgSelect').value;
+		}
+		function changeD(newD){
+			document.getElementById("Dvalue").innerHTML=newD;
+			D=newD;
+		}		
+		function changeNumball(newNumball){
+			document.getElementById("numBallvalue").innerHTML=newNumball;
+			numBalls=newNumball;
+		}
+		function changeN(newN){
+			document.getElementById("Nvalue").innerHTML=newN;
+			N=newN;
+		}
+		</script>
+				
+		<script>
+			/*<!--Copyright 2014 Matthew Lee Ferguson-->*/
+			/*<!--Javascript μLecture Demonstrations by Matthew Lee Ferguson is licensed under a GNU General Public License as published by the Free Software Foundation.
+			Based on a work at http://physics.boisestate.edu/ferguson/.-->*/
+
+			var canvas = document.getElementById('canvas');
+			var context = canvas.getContext('2d'); 
+			var chart2 = document.getElementById('chart2');
+			var context_chart2 = chart2.getContext('2d'); 
+			var radius = 5;
+			var red = "#880000";
+			var green = "#008800";
+			var yellow = "#888800";
+			var red2 = "#ff0000";
+			var green2 = "#00ff00";
+			var yellow2 = "#ffff00";
+			var blue = "#0000ff";
+			var balls;
+			var x1=[];
+			var F1=[];F2=[];
+			var data1= new TimeSeries();
+			var data2= new TimeSeries();
+			var tau=[],g1=[],g2=[],g12=[];
+			var t1=0;
+			var graph1;
+			var lambda_green=1;
+			var lambda_red=1;
+			var stoichiometry_green=1;
+			var stoichiometry_red=1;
+			var N=10;
+			var numBalls = 10000;
+			var D=10.;//currently nm^2/s
+			var dt=1.;//currently second
+			var w=40.,z=200.;//1pixel=10nm
+			var photons=1.0;
+			var win=10;
+			var xmin=0.,xmax=20.;
+			var ymin=0.,ymax=.1;
+			var taumax=2048;
+			var tw=75,th=30;
+			var C='White'
+
+			  Array.prototype.average=function(){
+				var sum=0;
+				var j=0;
+				for(var i=0;i<this.length;i++){
+					if(isFinite(this[i])){
+					  sum=sum+parseFloat(this[i]);
+					   j++;
+					}
+				}
+				if(j===0){
+					return 0;
+				}else{
+					return sum/j;
+				}
+
+			  } 
+			Array.prototype.max = function() {
+			  return Math.max.apply(null, this);
+			};
+
+			Array.prototype.min = function() {
+			  return Math.min.apply(null, this);
+			};
+			window.onload = init;
+
+			function correlate(lag,a,b){
+			  var n=a.length;
+			  //var m=lag.length;
+			  var result=0.0;
+			  
+			  //for (var i=0;i<m-1;i++) {
+			   for (var j=0;j<n-lag-1;j++) {
+				//if (a[j] != 0) if (b[j+lag[i]] != 0) result+=a[j]*b[j+lag[i]];
+				if (a[j] != 0) if (b[j+lag] != 0) result+=a[j]*b[j+lag];
+			   }
+			  //}
+			  
+			  result*=1./n;
+			  if (a.average()>0) result*=1./a.average();
+			  else result=0;
+			  if (b.average()>0) result*=1./b.average();
+			  else result=0;
+			  result-=1.0;
+			  //if (result>0) result-=1.0;
+			  //graph1.plot([0.1*j],[result],'#00ff00',true,true);
+			  //console.log(result);
+			  return result;
+			}
+
+			function P(x,y,w,z){
+				return Math.exp(-2.0*photons*((x/w)*(x/w)+(y/z)*(y/z)));
+			}
+
+			function poisson(lambda){
+				y=0;
+				p=Math.exp(-lambda);
+				s=p;
+				while(Math.random()>s){
+					y++;
+					p=p*lambda/y;
+					s+=p;
+				}
+				return y;
+			}
+
+			function init() {
+				x1=[];
+				F1=[];
+				F2=[];
+				tau=[];g1=[];g2=[];g12=[];
+				//graph1 = new Graph(context_chart2,0,win*dt,0,1,0,128,512,128);	
+				graph1 = new Graph(context_chart2,xmin,xmax,ymin,ymax,xmin,ymin,chart2.width,chart2.height);	
+				context_chart2.clearRect(0, 0, chart2.width, chart2.height); 
+				graph1.drawgrid(win*dt,win*dt/10,1,0.5);					
+
+				t1=0;
+				balls = new Array();
+				for (var i=0; i<numBalls; i++){
+					if (i<N) var ball = new Ball(radius,green);	
+					else if (i<2*N) var ball = new Ball(radius,red);	
+					else var ball = new Ball(radius,yellow);	
+					ball.x = Math.random()*canvas.width-radius;
+					ball.y = Math.random()*canvas.height-radius;
+					ball.draw(context);
+					balls.push(ball);
+				}  
+				setInterval(onEachStep, dt); // 60 fps
+				document.getElementById("Dvalue").innerHTML=10;
+				document.getElementById("numBallvalue").innerHTML=40;
+				document.getElementById("Nvalue").innerHTML=10;
+				changeNumball(document.getElementById("numBallsslider").value);
+				changeN(document.getElementById("Nslider").value);
+				printValue('numBallsslider','numBallvalue');
+				printValue('Nslider','Nvalue');				
+			};
+			 
+			function onEachStep() {
+				var photons_green=0, photons_red=0;
+				context.clearRect(0, 0, canvas.width, canvas.height); 
+				gradient1 = context.createRadialGradient(canvas.width/2,canvas.height/2,5,canvas.width/2,canvas.height/2,100);
+				gradient1.addColorStop(1,'transparent');
+				gradient1.addColorStop(0,'#880000');
+				context.fillStyle = gradient1;
+				context.ellipse(canvas.width/2, canvas.height/2, w/2, z/2, 0, 0, Math.PI*2,true);
+				//context.arc(350,250,50,0,2*Math.PI,true);
+				context.fill();
+				for (var i=0; i<numBalls; i++){
+					var ball = balls[i];
+					//comments for Kolby
+					//positions of each ball are in balls.x and balls.y	
+					ball.x += (2*Math.random()-1)*Math.sqrt(3)*Math.sqrt(2*D*dt); // horizontal speed increases horizontal position 
+					ball.y += (2*Math.random()-1)*Math.sqrt(3)*Math.sqrt(2*D*dt); // vertical speed increases vertical position
+
+					if (Math.random()<P(ball.x-canvas.width/2.0,ball.y-canvas.height/2.0,w,z)) 
+					{
+						if (i<N) ball.color=green2;	
+						else if (i<2*N) ball.color=red2;	
+						else ball.color=yellow2;
+							
+						if (i<N) photons_green+=poisson(lambda_green);	
+						else if (i<2*N) photons_red+=poisson(lambda_red);	
+						//if (i<N) photons_green+=poisson(lambda);	
+						//else if (i<2*N) photons_red+=poisson(lambda);	
+						else {
+						 photons_green+=poisson(stoichiometry_green*lambda_green);
+						 photons_red+=poisson(stoichiometry_red*lambda_red);
+						}
+					} else {
+						if (i<N) ball.color=green;	
+						else if (i<2*N) ball.color=red;	
+						else ball.color=yellow;	
+					}			
+							if (ball.y > canvas.height - radius){ 
+					ball.y = canvas.height - radius; 
+							}
+					if (ball.x > canvas.width - radius){ 
+					ball.x = canvas.width - radius; 
+							}
+					if (ball.y < radius){ 
+						ball.y = radius; 
+					}
+					if (ball.x < radius){ 
+						ball.x = radius; 
+					}
+					ball.draw(context); 
+				}
+					//graph1.plot([ball.x/canvas.width*100.],[ball.y/canvas.height],'#00ff00',true,true);
+				//console.log(photons, t);
+				//graph1.plot([t],[photons_green],0x0000ff,false,true);
+				//comments for Kolby
+				// time (x-axis is in array x)
+				// photons (y-axis is in array F)
+				//if (Math.floor(t/dt)%10 == 0) console.log(t);
+				x1.push(t1);
+				F1.push(photons_green);
+				F2.push(photons_red);
+				data1.append(new Date().getTime(), photons_green);0
+				data2.append(new Date().getTime(), photons_red);
+						   
+				if (((Math.floor(t1/dt)%win)==0)&&(t1!=0)) {
+					tau=[];g1=[];g2=[];g12=[];
+					var j=1;
+					//for(j=Math.floor(t/dt);j<Math.floor(t/dt)+win;j*=2)             
+					for(j=1;j<taumax;j*=2) 
+						{
+						tau.push(dt*j);
+						//tau.push(dt*(j-Math.floor(t/dt)));
+						//var F1sub=F1;
+						//F1sub=F1sub.slice(Math.floor(t/dt),Math.floor(t/dt)+win);
+						//var g=correlate(j,F1sub,F1sub);
+						var g=correlate(j,F1,F1);
+						g1.push(g);
+						g=correlate(j,F2,F2);
+						g2.push(g);
+						g=correlate(j,F1,F2);
+						g12.push(g);
+						//continue();
+						}
+					 var logtau=[];
+					 for (j=0;j<tau.length-1;j++) logtau.push(Math.log(tau[j]/dt)/Math.log(2));
+					 //graph1.plot(logtau,g1,'#00ff00',true,true);
+					 //graph1.drawgrid(win,win*dt/10,1.,0.5);					
+					 context_chart2.clearRect(0, 0, chart2.width, chart2.height);
+					 xmin=logtau.min();
+					 xmax=logtau.max();
+					 //ymin=Math.min(g1.min(),g2.min(),g12.min());
+					 //if (ymin<0) ymin=0.;
+					 ymax=Math.max(g1.max(),g2.max(),g12.max());
+					 var x0=0.75*tw;
+					 if (ymin<0) var y0=-ymin/(ymax-ymin)*(chart2.height-0.75*th);
+					 else var y0=chart2.height-0.75*th;
+				 graph1 = new Graph(context_chart2,xmin,xmax,ymin,ymax,x0,y0,chart2.width-tw,chart2.height-th);	
+				 //graph1=new Graph(context_chart2,logtau.min(),logtau.max(),g1.min(),g1.max(),0,128,512,128);
+				 graph1.drawgrid((xmax-xmin)/4,(xmax-xmin)/8,(ymax-ymin)/4,(ymax-ymin)/8);					
+					 graph1.plot(logtau,g1,'#00ff00',true,true);
+					 graph1.plot(logtau,g2,'#ff0000',true,true);
+					 graph1.plot(logtau,g12,'#ffff00',true,true);
+					 //console.log(logtau);
+					 //console.log(g1);
+					 //graph1.plot([Math.random()],[Math.random()],0x00ff00,true,true);
+				}
+				t1+=dt;
+				//data1.append(t, photons_green);
+				//data2.append(t, photons_red);
+					//graph1.plot([Math.random()*10.],[Math.random()],'#00ff00',true,true);
+				
+				/*g = new Dygraph(document.getElementById("canvas"), data,
+				{
+					drawPoints: true,
+					showRoller: true,
+					valueRange: [0.0, 5],
+					labels: ['Time[s]', 'counts']
+				 });*/
+				 
+				/*var smoothie = new SmoothieChart({ grid: { strokeStyle: 'rgb(125, 0, 0)', fillStyle: 'rgb(60, 0, 0)', lineWidth: 1, millisPerLine: 1000, verticalSections: 10 } });
+				  smoothie.addTimeSeries(data1, { strokeStyle: 'rgb(0, 255, 0)', fillStyle: 'rgba(0, 255, 0, 0.4)', lineWidth: 3 });
+				  smoothie.addTimeSeries(data2, { strokeStyle: 'rgb(255, 0, 0)', fillStyle: 'rgba(255, 0, 0, 0.3)', lineWidth: 3 });
+				  //smoothie.addTimeSeries(line1, { strokeStyle: 'rgb(0, 255, 0)', fillStyle: 'rgba(0, 255, 0, 0.4)', lineWidth: 3 });
+				  //smoothie.addTimeSeries(line2, { strokeStyle: 'rgb(255, 0, 255)', fillStyle: 'rgba(255, 0, 255, 0.3)', lineWidth: 3 });
+
+				  smoothie.streamTo(document.getElementById("mycanvas"), 1000);
+				*/
+
+			};
+		</script>    
+		<!--script type="text/javascript">
+		var chart2 = document.getElementById('chart2');
+		var context_chart2 = chart2.getContext('2d'); 
+		var graph1 = new Graph(context_chart2,0,100,0,1,0,256,1024,256);	
+		graph1.drawgrid(100,50,1,0.5);					
+		//graph1.drawaxes('time(s)','counts');
+		//graph1.plot([tau],[g1],0x00ff00,false,true);
+			graph1.plot([Math.random()],[Math.random()],0x00ff00,false,true);
+		//graph1.plot(tau,g1,0x00ff00,false,true);
+		
+		</script-->
+		<script type="text/javascript">
+			//var smoothie = new SmoothieChart({ grid: { strokeStyle: 'rgb(128, 0, 0)', fillStyle: 'rgb(64, 0, 0)', lineWidth: 1, millisPerLine: 250, verticalSections: 6 } });
+			var smoothie = new SmoothieChart({ grid: { strokeStyle: 'rgb(128, 0, 0)', fillStyle: 'rgb(64, 0, 0)', lineWidth: 1, millisPerLine: 250, verticalSections: 6 } });
+			smoothie.addTimeSeries(data1, { strokeStyle: 'rgb(0, 255, 0)', lineWidth: 3 });
+			smoothie.addTimeSeries(data2, { strokeStyle: 'rgb(255, 0, 0)', lineWidth: 3 });
+			smoothie.streamTo(document.getElementById("chart1"), 1000);
+		</script>
+
+		<font color="grey">
+		<p>Copyright 2025 Matthew Lee Ferguson</p>
+		<p><a rel="license" href="http://www.gnu.org/licenses/"><img alt="GNU General Public License as published by
+		the Free Software Foundation" style="border-width:0" src="https://www.gnu.org/graphics/heckert_gnu.small.png" /></a><br />
+		<span xmlns:dct="https://www.gnu.org/licenses/gpl.html" property="dct:title">Javascript &#956Lecture Demonstrations</span> by <a xmlns:cc="https://www.gnu.org/licenses/" href="https://www.boisestate.edu/physics/faculty-and-staff/faculty/ferguson/" property="cc:attributionName" rel="cc:attributionURL">Matthew Lee Ferguson</a> is licensed under a <a rel="license" href="https://www.gnu.org/licenses/gpl.html">GNU General Public License as published by
+		the Free Software Foundation</a>.<br />
+		Based on a work at <a href="https://www.boisestate.edu/physics/faculty-and-staff/faculty/ferguson/">https://www.boisestate.edu/physics/faculty-and-staff/faculty/ferguson/</a>.<br /></font></p>
+	</div>
+  </body>
+</html>
